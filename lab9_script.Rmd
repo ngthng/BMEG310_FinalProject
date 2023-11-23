@@ -1,0 +1,92 @@
+---
+title: "lab9_deliverables"
+author: "Theo-60985751, Hannah-88788427, Jingxuan-"
+date: "2023-11-06"
+output: pdf_document
+---
+
+# Action 1
+
+
+# Action 2
+
+### Including libraries
+
+```{r}
+library(ggplot2)
+library(ggpubr)
+library(pheatmap)
+library(reshape2)
+```
+
+
+### Reading and summarizing the data
+
+```{r}
+data_mutation = read.table("data_mutations.txt", header = TRUE, sep = '\t')
+data_clinical = read.table("data_clinical_patient.txt",header = TRUE, sep = '\t')
+data_rna = read.csv("RNAseq_LIHC.csv", header = TRUE)
+
+# colnames(data_mutation)
+```
+
+### Finding the patients that we have data for clinical, genome, and RNAseq data
+
+```{r}
+unique_patient_clinical = unique(data_clinical$PATIENT_ID)
+unique_patient_rna = unique(colnames(data_rna))
+unique_patient_mutation = unique(data_mutation$Tumor_Sample_Barcode)
+
+shortened_rna = substr(unique_patient_rna, start = 1, stop = 12)
+shortened_rna = gsub("\\.", "-", shortened_rna)
+
+shortened_mutation = substr(unique_patient_mutation, start = 1, stop = 12)
+
+common_names1 <- intersect(unique_patient_clinical, shortened_mutation)
+common_names2 <- intersect(common_names1, shortened_rna)
+```
+### Plotting age distribution of the common patients
+
+```{r}
+data_clinical_common = subset(data_clinical, PATIENT_ID %in% common_names2)
+
+boxplot(data_clinical_common$AGE, ylab = "Age", xlab = "Patient", main = "Age distribution of patients who have data
+        for all clinical, mutation, and rna-seq")
+```
+### For future use
+
+```{r}
+data_rna_shortened = data_rna
+colnames(data_rna_shortened) = substr(colnames(data_rna_shortened), start = 1, stop = 12)
+colnames(data_rna_shortened) = gsub("\\.", "-", colnames(data_rna_shortened))
+
+age = as.data.frame(table(data_clinical_common$AGE))
+age.ordered = age[order(-age$Freq),]
+
+```
+
+
+# Action 3
+```{r}
+data_mutation$PATIENT_ID = substr(data_mutation$Tumor_Sample_Barcode, start = 1, stop = 12)
+data_mutation_common = subset(data_mutation, PATIENT_ID %in% common_names2)
+non_syn <- subset(data_mutation_common, Variant_Classification != 'Silent')
+
+sample.name <- as.data.frame(table(non_syn$PATIENT_ID))
+sample.name.ordered <- sample.name[order(-sample.name$Freq),]
+
+ggplot(data = sample.name.ordered[1:15,], aes(x = reorder(Var1,-Freq), y = Freq, width = 0.3))+
+  geom_col(position = position_dodge(10))+
+  labs(title = "Top 15 frequency of non-synonymous mutations for the case of all \n patients with data for mutation, clinical, and rna-seq data",x = "patient id", y = "Frequency of non-synonymous mutations for the case")+
+  theme(axis.text.x = element_text(angle = 45,hjust=1, size = 7))
+
+ggplot(data = sample.name.ordered, aes(x = reorder(Var1,-Freq), y = Freq, width = 0.3))+
+  geom_col(position = position_dodge(10))+
+  labs(title = "Frequency of non-synonymous mutations for the case of all \n patients with data for mutation, clinical, and rna-seq data",x = "patient id", y = "Frequency of non-synonymous mutations for the case")+
+  theme(axis.text.x = element_text(angle = 45,hjust=1, size = 5))
+
+```
+
+
+
+
