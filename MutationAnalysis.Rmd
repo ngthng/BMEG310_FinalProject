@@ -34,7 +34,7 @@ common_names2 <- intersect(common_names1, shortened_rna)
 
 ```
 
-###  Adding the patient ID at the last column and get the 
+###  Adding the patient ID at the last column and get the common datas
 ```{r}
 data_clinical_common = subset(data_clinical, PATIENT_ID %in% common_names2)
 
@@ -46,3 +46,9 @@ data_mutation$PATIENT_ID = substr(data_mutation$Tumor_Sample_Barcode, start = 1,
 data_mutation_common = subset(data_mutation, PATIENT_ID %in% common_names2)
 ```
 
+First: make a matrix with column names = patient_ID, row names = gene names,
+values = 1 or 0.
+
+Get all the genes with 1, the pick out the top 20 occuring genes
+
+Make another matrix with rownames = the top 20 occuring genes, 
