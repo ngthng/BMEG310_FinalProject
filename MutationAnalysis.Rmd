@@ -17,3 +17,32 @@ data_clinical = read.table("data_clinical_patient.txt",header = TRUE, sep = '\t'
 data_rna = read.csv("RNAseq_LIHC.csv", header = TRUE)
 ```
 
+# Finding the patients that we have data for clinical, genome, and RNAseq data
+
+```{r}
+unique_patient_clinical = unique(data_clinical$PATIENT_ID)
+unique_patient_rna = unique(colnames(data_rna))
+unique_patient_mutation = unique(data_mutation$Tumor_Sample_Barcode)
+
+shortened_rna = substr(unique_patient_rna, start = 1, stop = 12)
+shortened_rna = gsub("\\.", "-", shortened_rna)
+
+shortened_mutation = substr(unique_patient_mutation, start = 1, stop = 12)
+
+common_names1 <- intersect(unique_patient_clinical, shortened_mutation)
+common_names2 <- intersect(common_names1, shortened_rna)
+
+```
+
+###  Adding the patient ID at the last column and get the 
+```{r}
+data_clinical_common = subset(data_clinical, PATIENT_ID %in% common_names2)
+
+data_rna_shortened = data_rna
+colnames(data_rna_shortened) = substr(colnames(data_rna_shortened), start = 1, stop = 12)
+colnames(data_rna_shortened) = gsub("\\.", "-", colnames(data_rna_shortened))
+
+data_mutation$PATIENT_ID = substr(data_mutation$Tumor_Sample_Barcode, start = 1, stop = 12)
+data_mutation_common = subset(data_mutation, PATIENT_ID %in% common_names2)
+```
+
