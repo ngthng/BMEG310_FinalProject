@@ -46,9 +46,71 @@ data_mutation$PATIENT_ID = substr(data_mutation$Tumor_Sample_Barcode, start = 1,
 data_mutation_common = subset(data_mutation, PATIENT_ID %in% common_names2)
 ```
 
+### From tutorial 
+### Generate oncoplot matrix
+```{r}
+cnv_events = unique(data$Variant_Classification)
+oncomat = reshape2::dcast(
+  data = data,
+  formula = Hugo_Symbol ~ Tumor_Sample_Barcode,
+  fun.aggregate = function(x, cnv = cnv_events) {
+    x = as.character(x) # >= 2 same/distinct variant classification = Multi_Hit
+    xad = x[x %in% cnv]
+    xvc = x[!x %in% cnv]
+    
+    if (length(xvc) > 0) {
+      xvc = ifelse(test = length(xvc) > 1,
+                   yes = 'Multi_Hit',
+                   no = xvc)
+    }
+    
+    x = ifelse(
+      test = length(xad) > 0,
+      yes = paste(xad, xvc, sep = ';'),
+      no = xvc
+    )
+    x = gsub(pattern = ';$',
+             replacement = '',
+             x = x)
+    x = gsub(pattern = '^;',
+             replacement = '',
+             x = x)
+    return(x)
+  },
+  value.var = 'Variant_Classification',
+  fill = '',
+  drop = FALSE
+)
+```
+
+### Modify the row label to reflect the gene name
+```{r}
+rownames(oncomat) = oncomat$Hugo_Symbol
+oncomat <- oncomat[,-1]
+```
+
+### Reorder the rows according to the occurrence of heavily mutated genes
+```{r}
+oncomat.ordered <- oncomat[order(-hugo$Freq),]
+```
+
+### Transform the matrix into a binary matrix
+```{r}
+mat <- oncomat.ordered
+mat[mat!=""]=1
+mat[mat==""]=0
+mat <- apply(mat, 2 ,as.numeric)
+mat <- as.matrix(mat)
+rownames(mat)  <-  row.names(oncomat.ordered)
+```
+
+
 First: make a matrix with column names = patient_ID, row names = gene names,
 values = 1 or 0.
 
 Get all the genes with 1, the pick out the top 20 occuring genes
 
 Make another matrix with rownames = the top 20 occuring genes, 
+
+
+p adjusted value, extract the significant gene, order them
