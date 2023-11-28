@@ -9,10 +9,18 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Including the libraries
+
+```{r}
+library(ggplot2)
+library(pheatmap)
+```
+
+
 # Opening the datafiles
 
 ```{r}
-data_mutation = read.table("data_mutations.txt", header = TRUE, sep = '\t')
+data_mutation = read.delim("data_mutations.txt", header = TRUE, sep = '\t')
 data_clinical = read.table("data_clinical_patient.txt",header = TRUE, sep = '\t')
 data_rna = read.csv("RNAseq_LIHC.csv", header = TRUE)
 ```
@@ -46,9 +54,25 @@ data_mutation$PATIENT_ID = substr(data_mutation$Tumor_Sample_Barcode, start = 1,
 data_mutation_common = subset(data_mutation, PATIENT_ID %in% common_names2)
 ```
 
+# Making a matrix of column names = patient ID, row names = genes
+
+
+
 ### From tutorial 
 ### Generate oncoplot matrix
+
 ```{r}
+data = data_mutation_common
+
+hugo <- as.data.frame(table(data$Hugo_Symbol))
+var.class <- as.data.frame(table(data$Variant_Classification))
+ggplot(data=var.class, aes(x=Var1, y=Freq))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 45,hjust=1))
+```
+
+```{r}
+
 cnv_events = unique(data$Variant_Classification)
 oncomat = reshape2::dcast(
   data = data,
@@ -97,18 +121,30 @@ oncomat.ordered <- oncomat[order(-hugo$Freq),]
 ### Transform the matrix into a binary matrix
 ```{r}
 mat <- oncomat.ordered
-mat[mat!=""]=1
+mat[mat!= "Silent" | mat != "Intron" | mat != ""] = 1
+
+mat[mat=="Silent" | mat == "Intron"]=0
 mat[mat==""]=0
+
 mat <- apply(mat, 2 ,as.numeric)
 mat <- as.matrix(mat)
 rownames(mat)  <-  row.names(oncomat.ordered)
 ```
 
 
+```{r}
+reduce.mat <- mat[1:3,]
+res <- pheatmap(reduce.mat,
+         cluster_rows = F,
+         show_colnames=FALSE)
+```
+
+
+
 First: make a matrix with column names = patient_ID, row names = gene names,
 values = 1 or 0.
 
-Get all the genes with 1, the pick out the top 20 occuring genes
+Get all the genes with 1, then pick out the top 20 occuring genes
 
 Make another matrix with rownames = the top 20 occuring genes, 
 
