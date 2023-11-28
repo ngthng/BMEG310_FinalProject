@@ -121,13 +121,15 @@ oncomat.ordered <- oncomat[order(-hugo$Freq),]
 ### Transform the matrix into a binary matrix
 ```{r}
 mat <- oncomat.ordered
-mat[mat!= "Silent" | mat != "Intron" | mat != ""] = 1
+mat[mat== "Silent"] = 0
+mat[mat == "Intron"] = 0
+mat[mat == ""] = 0
 
-mat[mat=="Silent" | mat == "Intron"]=0
-mat[mat==""]=0
 
 mat <- apply(mat, 2 ,as.numeric)
 mat <- as.matrix(mat)
+mat[is.na(mat)]=1
+
 rownames(mat)  <-  row.names(oncomat.ordered)
 ```
 
