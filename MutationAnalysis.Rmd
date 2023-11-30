@@ -237,6 +237,7 @@ Get all the genes with 1, then pick out the top 20 occuring genes (or play aroun
 
 Make another matrix with rownames = the top 20 occuring genes, 
 
-make survival analysis
+make survival analysis (see if clinical data is different when compare to patient clusters)
 
+DE analysis (see if any correlation between the clusters from mutation data and expression data)
 p adjusted value, extract the significant gene, order them
