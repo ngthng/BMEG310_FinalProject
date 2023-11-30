@@ -141,10 +141,10 @@ oncomat.ordered <- oncomat[order(-hugo$Freq),]
 genes.ordered = sort(genes, decreasing = TRUE)
 
 
-genes.ordered.top20 = genes.ordered[1:20]
-genes.ordered.top20.names = names(genes.ordered.top20)
+genes.ordered.top = genes.ordered[1:7]
+genes.ordered.top.names = names(genes.ordered.top)
 
-data_oncoplot.top20 = subset(data_oncoplot, Hugo_Symbol %in% genes.ordered.top20.names)
+data_oncoplot.top = subset(data_oncoplot, Hugo_Symbol %in% genes.ordered.top.names)
 
 
 
@@ -153,8 +153,8 @@ data_oncoplot.top20 = subset(data_oncoplot, Hugo_Symbol %in% genes.ordered.top20
 ### Making a matrix of the top 20 occuring genes
 
 ```{r}
-cnv_events = unique(data_oncoplot.top20$Variant_Classification)
-oncomat.top20 = reshape2::dcast(
+cnv_events = unique(data_oncoplot.top$Variant_Classification)
+oncomat.top = reshape2::dcast(
   data = data_oncoplot.top20,
   formula = Hugo_Symbol ~ Tumor_Sample_Barcode,
   fun.aggregate = function(x, cnv = cnv_events) {
@@ -185,11 +185,11 @@ oncomat.top20 = reshape2::dcast(
   fill = '',
   drop = FALSE
 )
-hugo <- as.data.frame(table(data_oncoplot.top20$Hugo_Symbol))
+hugo <- as.data.frame(table(data_oncoplot.top$Hugo_Symbol))
 
-rownames(oncomat.top20) = oncomat.top20$Hugo_Symbol
-oncomat.top20 <- oncomat.top20[,-1]
-oncomat.top20.ordered <- oncomat.top20[order(-hugo$Freq),]
+rownames(oncomat.top) = oncomat.top$Hugo_Symbol
+oncomat.top <- oncomat.top[,-1]
+oncomat.top.ordered <- oncomat.top[order(-hugo$Freq),]
 
 
 
@@ -198,24 +198,24 @@ oncomat.top20.ordered <- oncomat.top20[order(-hugo$Freq),]
 ### Transforming the top 20 matrix into binary
 
 ```{r, echo = FALSE}
-mat.top20 <- oncomat.top20.ordered
-mat.top20[mat.top20== "Silent"] = 0
-mat.top20[mat.top20 == "Intron"] = 0
-mat.top20[mat.top20 == "Missense_Mutation"] = 0
+mat.top <- oncomat.top.ordered
+mat.top[mat.top== "Silent"] = 0
+mat.top[mat.top == "Intron"] = 0
+mat.top[mat.top == "Missense_Mutation"] = 0
 
-mat.top20[mat.top20 == ""] = 0
+mat.top[mat.top == ""] = 0
 
 
-mat.top20 <- apply(mat.top20, 2 ,as.numeric)
-mat.top20 <- as.matrix(mat.top20)
-mat.top20[is.na(mat.top20)]=1
+mat.top <- apply(mat.top, 2 ,as.numeric)
+mat.top <- as.matrix(mat.top)
+mat.top[is.na(mat.top)]=1
 
-rownames(mat.top20)  <-  row.names(oncomat.top20.ordered)
+rownames(mat.top)  <-  row.names(oncomat.top.ordered)
 ```
 
 
 ```{r}
-reduce.mat <- mat.top20
+reduce.mat <- mat.top
 res <- pheatmap(reduce.mat,
          cluster_rows = F,
          show_colnames=FALSE)
@@ -225,15 +225,18 @@ res <- pheatmap(reduce.mat,
 cluster = as.data.frame(cutree(res$tree_col, k = 2))
 ```
 
+### DE analysis on the clustered patients
 
-
+H0: There's no significance between cluster 1 and 2
+H1: There's a difference between cluster 1 and 2
 
 First: make a matrix with column names = patient_ID, row names = gene names,
 values = 1 or 0.
 
-Get all the genes with 1, then pick out the top 20 occuring genes
+Get all the genes with 1, then pick out the top 20 occuring genes (or play around with the top numbers)
 
 Make another matrix with rownames = the top 20 occuring genes, 
 
+make survival analysis
 
 p adjusted value, extract the significant gene, order them
