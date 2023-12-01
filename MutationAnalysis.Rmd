@@ -14,6 +14,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(ggplot2)
 library(pheatmap)
+library("TCGAbiolinks")
+library("survival")
+library("survminer")
+library("SummarizedExperiment")
 ```
 
 
@@ -224,6 +228,59 @@ res <- pheatmap(reduce.mat,
 ```{r}
 cluster = as.data.frame(cutree(res$tree_col, k = 2))
 ```
+
+### survival analysis 
+```{r}
+data_clinical_common$deceased = data_clinical_common$OS_STATUS == "1:DECEASED"
+
+# create an "overall survival" variable that is equal to days_to_death
+# for dead patients, and to days_to_last_follow_up for patients who
+# are still alive
+data_clinical_common$overall_survival = ifelse(data_clinical_common$deceased,
+                                   data_clinical_common$OS_MONTHS,
+                                   data_clinical_common$DAYS_LAST_FOLLOWUP)
+```
+### sex
+```{r}
+Surv(data_clinical_common$overall_survival, data_clinical_common$deceased) ~ data_clinical_common$SEX
+
+fit = survfit(Surv(overall_survival, deceased) ~ SEX, data=data_clinical_common)
+
+pval = surv_pvalue(fit, data=data_clinical_common)$pval
+print(pval)
+```
+```{r}
+ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+```
+
+### tumor stage
+```{r}
+# remove any of the letters "a", "b" or "c", but only if they are at the end
+# of the name, eg "stage iiia" would become simply "stage iii"
+data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[abc]$", "", data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE)
+
+# we remove those with stage "not reported", since they are unknown
+data_clinical_common[which(data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE == ""), "AJCC_PATHOLOGIC_TUMOR_STAGE"] = NA
+
+table(data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE)
+```
+
+```{r}
+fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, data=data_clinical_common)
+
+# we can extract the survival p-value and print it
+pval = surv_pvalue(fit, data=data_clinical_common)$pval
+print(pval)
+```
+
+```{r}
+ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.height=0.35)
+```
+### gene expression
+```{r}
+
+```
+
 
 ### DE analysis on the clustered patients
 
