@@ -160,7 +160,7 @@ data_oncoplot.top = subset(data_oncoplot, Hugo_Symbol %in% genes.ordered.top.nam
 ```{r}
 cnv_events = unique(data_oncoplot.top$Variant_Classification)
 oncomat.top = reshape2::dcast(
-  data = data_oncoplot.top20,
+  data = data_oncoplot.top,
   formula = Hugo_Symbol ~ Tumor_Sample_Barcode,
   fun.aggregate = function(x, cnv = cnv_events) {
     x = as.character(x) # >= 2 same/distinct variant classification = Multi_Hit
@@ -228,6 +228,7 @@ res <- pheatmap(reduce.mat,
 ### clustering
 ```{r}
 cluster = as.data.frame(cutree(res$tree_col, k = 2))
+cluster
 ```
 
 ### survival analysis 
