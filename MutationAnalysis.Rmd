@@ -53,6 +53,7 @@ data_clinical_common = subset(data_clinical, PATIENT_ID %in% common_names2)
 data_rna_shortened = data_rna
 colnames(data_rna_shortened) = substr(colnames(data_rna_shortened), start = 1, stop = 12)
 colnames(data_rna_shortened) = gsub("\\.", "-", colnames(data_rna_shortened))
+data_rna_common = data_rna_shortened[,common_names2]
 
 data_mutation$PATIENT_ID = substr(data_mutation$Tumor_Sample_Barcode, start = 1, stop = 12)
 data_mutation_common = subset(data_mutation, PATIENT_ID %in% common_names2)
