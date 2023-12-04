@@ -279,6 +279,20 @@ ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.heig
 ```
 ### gene expression
 ```{r}
+data_rna_common <- data_rna_common[rowSums(data_rna_common)>1,]
+metadata <- data.frame(
+  patientID = common_names2,
+  condition = data_clinical_common$SEX
+)
+
+dds <- DESeqDataSetFromMatrix(countData = data_rna_common, colData = metadata, design = ~ condition)
+dds = DESeq(dds)
+dds
+res1 <- results(dds)
+res1
+summary(res1)
+res1.05 <- results(dds, alpha = 0.05)
+table(res1.05$padj < 0.05)
 
 ```
 
