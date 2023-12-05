@@ -307,10 +307,26 @@ metadata <- data.frame(
 dds <- DESeqDataSetFromMatrix(countData = data_rna_common_cluster, colData = metadata, design = ~ condition)
 dds = DESeq(dds)
 dds
-res <- results(dds)
-res
-summary(res)
-res.05 <- results(dds, alpha = 0.05)
-table(res.05$padj < 0.05)
+res_de <- results(dds)
+res_de
+summary(res_de)
+res_de.05 <- results(dds, alpha = 0.05)
+table(res_de.05$padj < 0.05)
 
 ```
+### DE analysis on the clustered patients
+
+H0: There's no significance between cluster 1 and 2
+H1: There's a difference between cluster 1 and 2
+
+First: make a matrix with column names = patient_ID, row names = gene names,
+values = 1 or 0.
+
+Get all the genes with 1, then pick out the top 20 occuring genes (or play around with the top numbers)
+
+Make another matrix with rownames = the top 20 occuring genes, 
+
+make survival analysis (see if clinical data is different when compare to patient clusters)
+
+DE analysis (see if any correlation between the clusters from mutation data and expression data)
+p adjusted value, extract the significant gene, order them
