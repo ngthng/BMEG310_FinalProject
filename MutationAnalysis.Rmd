@@ -300,7 +300,9 @@ expression frame done
 data_rna_common <- data_rna_common[rowSums(data_rna_common)>1,]
 rownames(cluster) = substr(rownames(cluster), start = 1, stop = 12)
 common_cluster <- row.names(cluster)
+
 data_rna_common_cluster <- data_rna_common[,common_cluster]
+
 metadata <- data.frame(
   patientID = row.names(cluster),
   condition = cluster$`cutree(res$tree_col, k = 2)`
