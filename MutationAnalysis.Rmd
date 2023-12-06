@@ -502,13 +502,48 @@ Plot counts
 ```{r}
 plotCounts(dds, gene=which.min(res_de$padj), intgroup="condition")
 ```
+Effect of transformations on the variance (CANT RUN THE CHUNK BELOW)
 
-
-### DE analysis on the clustered patients
-
-DE on Cluster 1
 ```{r}
+# this gives log2(n + 1)
+ntd <- normTransform(dds)
+# Variance stabilizing transformation
+vsd <- vst(dds)
 
+# Regularized log transformation
+# The blind=TRUE argument results in a transformation unbiased to sample condition information.
+rld <- rlog(dds, blind=FALSE)
+```
+
+
+```{r}
+sampleDists = dist(t(assay(rld)),upper = TRUE)
+
+# annot_col = data.frame(cluster$`cutree(res$tree_col, k = 2)`)
+# row.names(annot_col) <- rownames(clusters)
+
+sampleDistMatrix = as.matrix( sampleDists )
+rownames(sampleDistMatrix) = colnames(data_rna_common)
+colnames(sampleDistMatrix) = colnames(data_rna_common)
+
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         cluster_rows=FALSE, show_rownames=TRUE,
+         cluster_cols=TRUE,
+         annotation_col=cluster)
+```
+
+```{r}
+pca_res <- prcomp(t(assay(vsd)), scale. = TRUE)
+score <- pca_res$x
+
+score = as.data.frame(score)
+score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
+
+
+ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
+  geom_point(size = 4)
 ```
 
 
