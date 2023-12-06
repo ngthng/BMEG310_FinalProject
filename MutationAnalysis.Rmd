@@ -19,6 +19,9 @@ library("survival")
 library("survminer")
 library("SummarizedExperiment")
 library(DESeq2)
+library("gridExtra")
+library("AnnotationDbi")
+library("org.Hs.eg.db")
 ```
 
 
@@ -384,16 +387,50 @@ sampleDists = dist(t(data_rna_common),upper = TRUE)
 
 sampleDistMatrix = as.matrix( sampleDists )
 rownames(sampleDistMatrix) = colnames(data_rna_common)
-colnames(sampleDistMatrix) = colnames(data_ran_common)
+colnames(sampleDistMatrix) = colnames(data_rna_common)
 
 pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          cluster_rows=FALSE, show_rownames=TRUE,
          cluster_cols=TRUE,
-         annotation_col=annot_col)
+         annotation_col=cluster)
 ```
- 
+PCA plot
+
+```{r}
+pca_res <- prcomp(t(data_rna_common), scale. = TRUE)
+score <- pca_res$x
+
+score = as.data.frame(score)
+score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
+
+ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
+  geom_point(size = 4)
+```
+
+For visualization purposes
+
+```{r}
+p1 <- ggplot(as.data.frame(data_rna_common),aes(x="TCGA-2V-A95S"))+
+  geom_histogram(bins=50)+
+  labs(title="No transformation")
+
+log2 <- log(data_rna_common+1, base = 2)
+p2 <- ggplot(as.data.frame(log2),aes(x="TCGA-2V-A95S"))+
+  geom_histogram(bins=50)+
+  labs(title="Log(x+1)")
+
+# grid.arrange(p1, p2, ncol = 2)
+```
+
+Actually running the DESeq pipeline
+
+```{r}
+# dds = DESeqDataSetFromMatrix(countData=data_rna_common,
+#                               colData=cluster,
+#                               design= ~cluster$`cutree(res$tree_col, k = 2)`)
+```
 
 
 ```{r}
@@ -415,13 +452,57 @@ metadata <- data.frame(
 dds <- DESeqDataSetFromMatrix(countData = data_rna_common_cluster, colData = metadata, design = ~ condition)
 dds = DESeq(dds)
 dds
-res_de <- results(dds)
-res_de
+
+# res_de <- results(dds)
+# res_de
+# summary(res_de)
+# res_de.05 <- results(dds, alpha = 0.05)
+# table(res_de.05$padj < 0.05)
+```
+```{r}
+res_de = results(dds, contrast=c(1, 2))
+mcols(res_de, use.names = TRUE)
 summary(res_de)
 res_de.05 <- results(dds, alpha = 0.05)
 table(res_de.05$padj < 0.05)
 
+resLFC1 <- results(dds, lfcThreshold=1)
+table(resLFC1$padj < 0.1)
 ```
+
+
+P-values
+```{r}
+res_de <- res_de[order(res_de$pvalue),]
+summary(res_de)
+
+## number of adjusted p-values less than 0.1
+sum(res_de$padj < 0.1, na.rm=TRUE)
+```
+
+multiple testing
+
+```{r}
+sum(res_de$pvalue < 0.05, na.rm=TRUE)
+sum(!is.na(res_de$pvalue))
+sum(res_de$padj < 0.06, na.rm=TRUE)
+
+resSig <- subset(res_de, padj < 0.06)
+head(resSig[ order( resSig$log2FoldChange ), ])
+
+head(resSig[ order( resSig$log2FoldChange, decreasing=TRUE), ])
+```
+
+MA-plot
+```{r}
+plotMA(res_de, ylim=c(-2,2))
+```
+
+Plot counts
+```{r}
+plotCounts(dds, gene=which.min(res_de$padj), intgroup="condition")
+```
+
 
 ### DE analysis on the clustered patients
 
