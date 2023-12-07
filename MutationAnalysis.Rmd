@@ -164,7 +164,7 @@ mat[is.na(mat)]=1
 
 rownames(mat)  <-  row.names(oncomat.ordered)
 ```
-### Finding the top 20 occuring genes
+### Finding the top 20 mutated genes
 ```{r}
 genes = rowSums(mat)
 oncomat.ordered <- oncomat[order(-hugo$Freq),]
@@ -265,9 +265,9 @@ data_clinical_common_group1 = subset(data_clinical_common,PATIENT_ID %in% rownam
 
 data_clinical_common_group2 = subset(data_clinical_common,PATIENT_ID %in% rownames(mutation_group2_patientID))
 
-mutation_TTN_patientID = data_mutation_common$PATIENT_ID[data_mutation_common$Hugo_Symbol == "TTN"]
+mutation_TP53_patientID = data_mutation_common$PATIENT_ID[data_mutation_common$Hugo_Symbol == "TP53"]
 
-data_clinical_common_TTN = subset(data_clinical_common, PATIENT_ID %in% mutation_TTN_patientID)
+data_clinical_common_TP53 = subset(data_clinical_common, PATIENT_ID %in% mutation_TP53_patientID)
 
 ```
 
@@ -303,8 +303,6 @@ ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col=
 # of the name, eg "stage iiia" would become simply "stage iii"
 data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
-# we remove those with stage "not reported", since they are unknown
-data_clinical_common[which(data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE == ""), "AJCC_PATHOLOGIC_TUMOR_STAGE"] = NA
 
 table(data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE)
 ```
@@ -402,43 +400,45 @@ print(pval)
 ggsurvplot(fit, data=data_clinical_common_group2, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
 ```
 
-SA on the most mutated gene sex
+SA on the most mutated gene sex (TP53)
 ```{r}
-Surv(data_clinical_common_TTN$overall_survival, data_clinical_common_TTN$deceased) ~ data_clinical_common_TTN$SEX
-
-fit = survfit(Surv(overall_survival, deceased) ~ SEX, data = data_clinical_common_TTN)
-
-table(data_clinical_common_TTN$SEX)
-pval = surv_pvalue(fit, data=data_clinical_common_TTN)$pval
-print(pval)
-
-ggsurvplot(fit, data=data_clinical_common_TTN, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
-```
-SA on the most mutated gene tumor stage
-```{r}
-data_clinical_common_TTN$deceased = data_clinical_common_TTN$PFS_STATUS == "1:PROGRESSION"
+data_clinical_common_TP53$deceased = data_clinical_common_TP53$PFS_STATUS == "1:PROGRESSION"
 
 # create an "overall survival" variable that is equal to days_to_death
 # for dead patients, and to days_to_last_follow_up for patients who
 # are still alive
-data_clinical_common_TTN$overall_survival = ifelse(data_clinical_common_TTN$deceased,
-                                   data_clinical_common_TTN$OS_MONTHS,
-                                   data_clinical_common_TTN$DAYS_LAST_FOLLOWUP)
+data_clinical_common_TP53$overall_survival = ifelse(data_clinical_common_TP53$deceased,
+                                   data_clinical_common_TP53$OS_MONTHS,
+                                   data_clinical_common_TP53$DAYS_LAST_FOLLOWUP)
+
+
+Surv(data_clinical_common_TP53$overall_survival, data_clinical_common_TP53$deceased) ~ data_clinical_common_TP53$SEX
+
+fit = survfit(Surv(overall_survival, deceased) ~ SEX, data = data_clinical_common_TP53)
+
+table(data_clinical_common_TP53$SEX)
+pval = surv_pvalue(fit, data=data_clinical_common_TP53)$pval
+print(pval)
+
+ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+```
+SA on the most mutated gene tumor stage
+```{r}
 
 # remove any of the letters "a", "b" or "c", but only if they are at the end
 # of the name, eg "stage iiia" would become simply "stage iii"
-data_clinical_common_TTN$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common_TTN$AJCC_PATHOLOGIC_TUMOR_STAGE)
+data_clinical_common_TP53JCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
 
-table(data_clinical_common_TTN$AJCC_PATHOLOGIC_TUMOR_STAGE)
+table(data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
-fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, data=data_clinical_common_TTN)
+fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, data=data_clinical_common_TP53)
 
 # we can extract the survival p-value and print it
-pval = surv_pvalue(fit, data=data_clinical_common_TTN)$pval
+pval = surv_pvalue(fit, data=data_clinical_common_TP53)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_TTN, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
 ```
 
 
@@ -559,9 +559,9 @@ multiple testing
 ```{r}
 sum(res_de$pvalue < 0.05, na.rm=TRUE)
 sum(!is.na(res_de$pvalue))
-sum(res_de$padj < 0.06, na.rm=TRUE)
+sum(res_de$padj < 0.05, na.rm=TRUE)
 
-resSig <- subset(res_de, padj < 0.06)
+resSig <- subset(res_de, padj < 0.05)
 head(resSig[ order( resSig$log2FoldChange ), ])
 
 head(resSig[ order( resSig$log2FoldChange, decreasing=TRUE), ])
@@ -618,6 +618,12 @@ score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
 
 ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
   geom_point(size = 4)
+```
+
+```{r}
+genes <- order(res$padj, decreasing = TRUE) [1:20]
+
+v kj        c
 ```
 
 
