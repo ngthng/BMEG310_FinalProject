@@ -512,7 +512,7 @@ vsd <- vst(dds)
 
 # Regularized log transformation
 # The blind=TRUE argument results in a transformation unbiased to sample condition information.
-rld <- rlog(dds, blind=FALSE)
+rld <- vst(dds, blind=FALSE)
 ```
 
 
