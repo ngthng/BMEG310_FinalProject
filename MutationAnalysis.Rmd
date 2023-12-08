@@ -220,7 +220,7 @@ rownames(mat.top)  <-  row.names(oncomat.top.ordered)
 ```
 ### Generate a pheatmap
 ```{r}
-reduce.mat <- mat.top[1:2,]
+reduce.mat <- mat.top[1:3,]
 res <- pheatmap(reduce.mat,
          cluster_rows = F,
          show_colnames = FALSE)
@@ -257,6 +257,25 @@ data_clinical_common$overall_survival = ifelse(data_clinical_common$deceased,
                                    data_clinical_common$OS_MONTHS,
                                    data_clinical_common$DAYS_LAST_FOLLOWUP)
 ```
+
+### SA by cluster
+
+```{r}
+# Adding a cluster annotation column
+
+data_clinical_common$cluster = cluster[data_clinical_common$PATIENT_ID,]
+
+Surv(data_clinical_common$overall_survival, data_clinical_common$deceased) ~ data_clinical_common$cluster
+
+table(data_clinical_common$cluster)
+fit = survfit(Surv(overall_survival, deceased) ~ cluster, data = data_clinical_common)
+
+pval = surv_pvalue(fit, data=data_clinical_common)$pval
+print(pval)
+
+ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+```
+
 
 ### SA by sex
 ```{r}
