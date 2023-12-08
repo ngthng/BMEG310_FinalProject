@@ -23,10 +23,7 @@ library("gridExtra")
 library("AnnotationDbi")
 library("org.Hs.eg.db")
 ```
-
-
 # Opening the datafiles
-
 ```{r}
 data_mutation = read.delim("data_mutations.txt", header = TRUE, sep = '\t')
 data_clinical = read.table("data_clinical_patient.txt",header = TRUE, sep = '\t')
@@ -34,7 +31,6 @@ data_rna = read.csv("RNAseq_LIHC.csv", header = TRUE, row.names = "X")
 ```
 
 # Finding the patients that we have data for clinical, genome, and RNAseq data
-
 ```{r}
 unique_patient_clinical = unique(data_clinical$PATIENT_ID)
 unique_patient_rna = unique(colnames(data_rna))
@@ -66,13 +62,7 @@ data_rna_common = data_rna_shortened[,common_names2]
 
 ```
 
-# Making a matrix of column names = patient ID, row names = genes
-
-
-
-### From tutorial 
-### Generate oncoplot matrix
-
+### Generate a plot for distribution of variant classifications
 ```{r}
 data_oncoplot = data_mutation_common
 
@@ -82,7 +72,7 @@ ggplot(data=var.class, aes(x=Var1, y=Freq))+
   geom_col()+
   theme(axis.text.x = element_text(angle = 45,hjust=1))
 ```
-
+### Generate a plot for distribution of mutation events
 ```{r}
 hugo <- as.data.frame(table(data_mutation_common$Hugo_Symbol))
 
@@ -93,8 +83,7 @@ ggplot(data=hugo.ordered[1:20,], aes(x=Var1, y=Freq))+
   theme(axis.text.x = element_text(angle = 45,hjust=1))+
   scale_x_discrete(limits = hugo.ordered[1:20,]$Var1)
 ```
-
-
+### Generate an oncoplot matrix of all genes
 ```{r}
 cnv_events = unique(data_oncoplot$Variant_Classification)
 oncomat = reshape2::dcast(
@@ -128,25 +117,12 @@ oncomat = reshape2::dcast(
   fill = '',
   drop = FALSE
 )
-```
-
-
-
-### Modify the row label to reflect the gene name
-```{r}
 
 rownames(oncomat) = oncomat$Hugo_Symbol
 oncomat <- oncomat[,-1]
-```
 
-
-
-### Reorder the rows according to the occurrence of heavily mutated genes
-
-```{r}
 oncomat.ordered <- oncomat[order(-hugo$Freq),]
 ```
-
 
 ### Transform the matrix into a binary matrix
 ```{r}
@@ -156,32 +132,27 @@ mat[mat == "Intron"] = 0
 mat[mat == "Missense_Mutation"] = 0
 mat[mat == ""] = 0
 
-
-
 mat <- apply(mat, 2 ,as.numeric)
 mat <- as.matrix(mat)
 mat[is.na(mat)]=1
 
 rownames(mat)  <-  row.names(oncomat.ordered)
 ```
-### Finding the top 20 occuring genes
+### Finding the top 20 most mutated genes
 ```{r}
 genes = rowSums(mat)
 oncomat.ordered <- oncomat[order(-hugo$Freq),]
 genes.ordered = sort(genes, decreasing = TRUE)
 
 
-genes.ordered.top = genes.ordered
+genes.ordered.top = genes.ordered[1:20]
 genes.ordered.top.names = names(genes.ordered.top)
 
 data_oncoplot.top = subset(data_oncoplot, Hugo_Symbol %in% genes.ordered.top.names)
 
-
-
 ```
 
-### Making a matrix of the top 20 occuring genes
-
+### Making a matrix of the top 20 mutated genes
 ```{r}
 cnv_events = unique(data_oncoplot.top$Variant_Classification)
 oncomat.top = reshape2::dcast(
@@ -220,13 +191,18 @@ hugo <- as.data.frame(table(data_oncoplot.top$Hugo_Symbol))
 rownames(oncomat.top) = oncomat.top$Hugo_Symbol
 oncomat.top <- oncomat.top[,-1]
 oncomat.top.ordered <- oncomat.top[order(-hugo$Freq),]
+```
 
-
-
+### Generate a plot for distribution of the top 20 most mutated genes
+```{r}
+hugo.ordered <- hugo[order(-hugo$Freq),]
+ggplot(hugo.ordered, aes(x=Var1, y=Freq))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 45,hjust=1))+
+  scale_x_discrete(limits = hugo.ordered$Var1)
 ```
 
 ### Transforming the top matrix into binary
-
 ```{r, echo = FALSE}
 mat.top <- oncomat.top.ordered
 mat.top[mat.top== "Silent"] = 0
@@ -242,10 +218,8 @@ mat.top[is.na(mat.top)]=1
 
 rownames(mat.top)  <-  row.names(oncomat.top.ordered)
 ```
-
-
+### Generate a pheatmap
 ```{r}
-
 reduce.mat <- mat.top[1:2,]
 res <- pheatmap(reduce.mat,
          cluster_rows = F,
@@ -265,9 +239,9 @@ data_clinical_common_group1 = subset(data_clinical_common,PATIENT_ID %in% rownam
 
 data_clinical_common_group2 = subset(data_clinical_common,PATIENT_ID %in% rownames(mutation_group2_patientID))
 
-mutation_TTN_patientID = data_mutation_common$PATIENT_ID[data_mutation_common$Hugo_Symbol == "TTN"]
+mutation_TP53_patientID = data_mutation_common$PATIENT_ID[data_mutation_common$Hugo_Symbol == "TP53"]
 
-data_clinical_common_TTN = subset(data_clinical_common, PATIENT_ID %in% mutation_TTN_patientID)
+data_clinical_common_TP53 = subset(data_clinical_common, PATIENT_ID %in% mutation_TP53_patientID)
 
 ```
 
@@ -283,6 +257,7 @@ data_clinical_common$overall_survival = ifelse(data_clinical_common$deceased,
                                    data_clinical_common$OS_MONTHS,
                                    data_clinical_common$DAYS_LAST_FOLLOWUP)
 ```
+
 ### SA by sex
 ```{r}
 Surv(data_clinical_common$overall_survival, data_clinical_common$deceased) ~ data_clinical_common$SEX
@@ -292,39 +267,31 @@ fit = survfit(Surv(overall_survival, deceased) ~ SEX, data = data_clinical_commo
 
 pval = surv_pvalue(fit, data=data_clinical_common)$pval
 print(pval)
-```
-```{r}
-ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
-```
 
-### SA by tumor stage
+ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+
+```
+### SA by Tumor Stage
 ```{r}
 # remove any of the letters "a", "b" or "c", but only if they are at the end
 # of the name, eg "stage iiia" would become simply "stage iii"
 data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
-# we remove those with stage "not reported", since they are unknown
+	
 data_clinical_common[which(data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE == ""), "AJCC_PATHOLOGIC_TUMOR_STAGE"] = NA
 
 table(data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE)
-```
 
-```{r}
 fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, data=data_clinical_common)
 
 # we can extract the survival p-value and print it
 pval = surv_pvalue(fit, data=data_clinical_common)$pval
 print(pval)
-```
-
-```{r}
 ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.height=0.45)
 ```
-expression frame done
-
 ### Survival analysis on the clustered patients
 
-SA on cluster 1 Tumor Stage 
+### SA on cluster 1 Tumor Stage 
 ```{r}
 data_clinical_common_group1$deceased = data_clinical_common_group1$PFS_STATUS == "1:PROGRESSION"
 
@@ -339,6 +306,7 @@ data_clinical_common_group1$overall_survival = ifelse(data_clinical_common_group
 # of the name, eg "stage iiia" would become simply "stage iii"
 data_clinical_common_group1$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common_group1$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
+data_clinical_common_group1[which(data_clinical_common_group1$AJCC_PATHOLOGIC_TUMOR_STAGE == ""), "AJCC_PATHOLOGIC_TUMOR_STAGE"] = NA
 
 table(data_clinical_common_group1$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
@@ -348,9 +316,10 @@ fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE , d
 pval = surv_pvalue(fit, data=data_clinical_common_group1)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_group1, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common_group1, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.45)
 ```
-SA on cluster 1 Sex
+
+### SA on cluster 1 Sex
 ```{r}
 Surv(data_clinical_common_group1$overall_survival, data_clinical_common_group1$deceased) ~ data_clinical_common_group1$SEX
 
@@ -363,7 +332,7 @@ print(pval)
 ggsurvplot(fit, data=data_clinical_common_group1, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
 ```
 
-SA on cluster 2 Tumor stage 
+### SA on cluster 2 Tumor stage 
 ```{r}
 data_clinical_common_group2$deceased = data_clinical_common_group2$PFS_STATUS == "1:PROGRESSION"
 
@@ -378,6 +347,7 @@ data_clinical_common_group2$overall_survival = ifelse(data_clinical_common_group
 # of the name, eg "stage iiia" would become simply "stage iii"
 data_clinical_common_group2$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common_group2$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
+data_clinical_common_group2[which(data_clinical_common_group2$AJCC_PATHOLOGIC_TUMOR_STAGE == ""), "AJCC_PATHOLOGIC_TUMOR_STAGE"] = NA
 
 table(data_clinical_common_group2$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
@@ -389,7 +359,7 @@ print(pval)
 
 ggsurvplot(fit, data=data_clinical_common_group2, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
 ```
-SA on cluster 2 Sex
+### SA on cluster 2 Sex
 ```{r}
 Surv(data_clinical_common_group2$overall_survival, data_clinical_common_group2$deceased) ~ data_clinical_common_group2$SEX
 
@@ -402,43 +372,46 @@ print(pval)
 ggsurvplot(fit, data=data_clinical_common_group2, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
 ```
 
-SA on the most mutated gene sex
+### SA on the most mutated gene Sex (TP53)
 ```{r}
-Surv(data_clinical_common_TTN$overall_survival, data_clinical_common_TTN$deceased) ~ data_clinical_common_TTN$SEX
-
-fit = survfit(Surv(overall_survival, deceased) ~ SEX, data = data_clinical_common_TTN)
-
-table(data_clinical_common_TTN$SEX)
-pval = surv_pvalue(fit, data=data_clinical_common_TTN)$pval
-print(pval)
-
-ggsurvplot(fit, data=data_clinical_common_TTN, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
-```
-SA on the most mutated gene tumor stage
-```{r}
-data_clinical_common_TTN$deceased = data_clinical_common_TTN$PFS_STATUS == "1:PROGRESSION"
+data_clinical_common_TP53$deceased = data_clinical_common_TP53$PFS_STATUS == "1:PROGRESSION"
 
 # create an "overall survival" variable that is equal to days_to_death
 # for dead patients, and to days_to_last_follow_up for patients who
 # are still alive
-data_clinical_common_TTN$overall_survival = ifelse(data_clinical_common_TTN$deceased,
-                                   data_clinical_common_TTN$OS_MONTHS,
-                                   data_clinical_common_TTN$DAYS_LAST_FOLLOWUP)
-
-# remove any of the letters "a", "b" or "c", but only if they are at the end
-# of the name, eg "stage iiia" would become simply "stage iii"
-data_clinical_common_TTN$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common_TTN$AJCC_PATHOLOGIC_TUMOR_STAGE)
+data_clinical_common_TP53$overall_survival = ifelse(data_clinical_common_TP53$deceased,
+                                   data_clinical_common_TP53$OS_MONTHS,
+                                   data_clinical_common_TP53$DAYS_LAST_FOLLOWUP)
 
 
-table(data_clinical_common_TTN$AJCC_PATHOLOGIC_TUMOR_STAGE)
+Surv(data_clinical_common_TP53$overall_survival, data_clinical_common_TP53$deceased) ~ data_clinical_common_TP53$SEX
 
-fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, data=data_clinical_common_TTN)
+fit = survfit(Surv(overall_survival, deceased) ~ SEX, data = data_clinical_common_TP53)
 
-# we can extract the survival p-value and print it
-pval = surv_pvalue(fit, data=data_clinical_common_TTN)$pval
+table(data_clinical_common_TP53$SEX)
+pval = surv_pvalue(fit, data=data_clinical_common_TP53)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_TTN, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+```
+### SA on the most mutated gene Tumor Stage
+```{r}
+# remove any of the letters "a", "b" or "c", but only if they are at the end
+# of the name, eg "stage iiia" would become simply "stage iii"
+data_clinical_common_TP53JCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE)
+
+data_clinical_common_TP53[which(data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE == ""), "AJCC_PATHOLOGIC_TUMOR_STAGE"] = NA
+
+
+table(data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE)
+
+fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, data=data_clinical_common_TP53)
+
+# we can extract the survival p-value and print it
+pval = surv_pvalue(fit, data=data_clinical_common_TP53)$pval
+print(pval)
+
+ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.50)
 ```
 
 
@@ -566,9 +539,14 @@ multiple testing
 ```{r}
 sum(res_de$pvalue < 0.05, na.rm=TRUE)
 sum(!is.na(res_de$pvalue))
-sum(res_de$padj < 0.06, na.rm=TRUE)
+sum(res_de$padj < 0.05, na.rm=TRUE)
 
+<<<<<<< HEAD
 resSig <- subset(res_de, padj < 0.06)
+=======
+resSig <- subset(res_de, padj < 0.05)
+head(resSig[ order( resSig$log2FoldChange ), ])
+>>>>>>> 13d88496eb13284fd3bf6f897bb4aa80eb1d75d8
 
 head(resSig[order(resSig$log2FoldChange, decreasing=TRUE),], n= 20)
 
@@ -627,6 +605,11 @@ vsd <- vst(dds)
 # 
 # ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
 #   geom_point(size = 4)
+```
+
+```{r}
+genes <- order(res$padj, decreasing = TRUE) [1:20]
+
 ```
 
 
