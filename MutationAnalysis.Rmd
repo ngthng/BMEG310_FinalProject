@@ -559,7 +559,7 @@ sum(res_de$padj < 0.05, na.rm=TRUE)
 
 resSig <- subset(res_de, padj < 0.06)
 resSig <- subset(res_de, padj < 0.05)
-head(resSig[ order( resSig$log2FoldChange ), ])
+head(resSig[order( resSig$log2FoldChange ), ])
 
 head(resSig[order(resSig$log2FoldChange, decreasing=TRUE),], n= 20)
 
@@ -572,7 +572,7 @@ MA-plot
 ```
 
 Plot counts
-```{r}u
+```{r}
 plotCounts(dds, gene=which.min(res_de$padj), intgroup="condition")
 ```
 Effect of transformations on the variance (CANT RUN THE CHUNK BELOW)
@@ -623,10 +623,10 @@ Selecting the top 20 upregulated and top 20 downregulated
 ```{r}
 # Top20genes = head(resSig[order(resSig$log2FoldChange, decreasing=TRUE),], n= 20)
 
-genes <- order(res$padj, decreasing = TRUE) [1:20]
+# genes <- order(res$padj, decreasing = TRUE) [1:20]
 
 # we can select a subset of genes to plot.let’s choose the 20 genes with the largest positive log2fold change.
-genes <- order(res$log2FoldChange,decreasing = TRUE)[1:20]
+genes <- order(res_de$log2FoldChange,decreasing = TRUE)[1:20]
 
 # or largest negative log2fold change
 # genes <- order(res$log2FoldChange, decreasing = FALSE)[1:20]
