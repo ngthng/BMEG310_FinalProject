@@ -473,14 +473,14 @@ pheatmap(sampleDistMatrix,
 PCA plot
 
 ```{r}
-pca_res <- prcomp(t(data_rna_common), scale. = TRUE)
-score <- pca_res$x
-
-score = as.data.frame(score)
-score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
-
-ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
-  geom_point(size = 4)
+# pca_res <- prcomp(t(data_rna_common), scale. = TRUE)
+# score <- pca_res$x
+# 
+# score = as.data.frame(score)
+# score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
+# 
+# ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
+#   geom_point(size = 4)
 ```
 
 For visualization purposes
@@ -522,7 +522,14 @@ metadata <- data.frame(
 
 ### DE
 
+make data as factors so it runs faster (?)
 ```{r}
+# data_rna_common_cluster = as.factor(data_rna_common_cluster)
+```
+
+
+```{r}
+
 dds <- DESeqDataSetFromMatrix(countData = data_rna_common_cluster, colData = metadata, design = ~ condition)
 dds = DESeq(dds)
 dds
@@ -562,9 +569,11 @@ sum(!is.na(res_de$pvalue))
 sum(res_de$padj < 0.06, na.rm=TRUE)
 
 resSig <- subset(res_de, padj < 0.06)
-head(resSig[ order( resSig$log2FoldChange ), ])
 
-head(resSig[ order( resSig$log2FoldChange, decreasing=TRUE), ])
+head(resSig[order(resSig$log2FoldChange, decreasing=TRUE),], n= 20)
+
+Top20genes = head(resSig[order(resSig$log2FoldChange, decreasing=TRUE),], n= 20)
+
 ```
 
 MA-plot
@@ -573,7 +582,7 @@ plotMA(res_de, ylim=c(-2,2))
 ```
 
 Plot counts
-```{r}
+```{r}u
 plotCounts(dds, gene=which.min(res_de$padj), intgroup="condition")
 ```
 Effect of transformations on the variance (CANT RUN THE CHUNK BELOW)
@@ -586,38 +595,38 @@ vsd <- vst(dds)
 
 # Regularized log transformation
 # The blind=TRUE argument results in a transformation unbiased to sample condition information.
-rld <- vst(dds, blind=FALSE)
+# rld <- vst(dds, blind=FALSE)
 ```
 
 
 ```{r}
-sampleDists = dist(t(assay(rld)),upper = TRUE)
-
-# annot_col = data.frame(cluster$`cutree(res$tree_col, k = 2)`)
-# row.names(annot_col) <- rownames(clusters)
-
-sampleDistMatrix = as.matrix( sampleDists )
-rownames(sampleDistMatrix) = colnames(data_rna_common)
-colnames(sampleDistMatrix) = colnames(data_rna_common)
-
-pheatmap(sampleDistMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists,
-         cluster_rows=FALSE, show_rownames=TRUE,
-         cluster_cols=TRUE,
-         annotation_col=cluster)
+# sampleDists = dist(t(assay(rld)),upper = TRUE)
+# 
+# # annot_col = data.frame(cluster$`cutree(res$tree_col, k = 2)`)
+# # row.names(annot_col) <- rownames(clusters)
+# 
+# sampleDistMatrix = as.matrix( sampleDists )
+# rownames(sampleDistMatrix) = colnames(data_rna_common)
+# colnames(sampleDistMatrix) = colnames(data_rna_common)
+# 
+# pheatmap(sampleDistMatrix,
+#          clustering_distance_rows = sampleDists,
+#          clustering_distance_cols = sampleDists,
+#          cluster_rows=FALSE, show_rownames=TRUE,
+#          cluster_cols=TRUE,
+#          annotation_col=cluster)
 ```
 
 ```{r}
-pca_res <- prcomp(t(assay(vsd)), scale. = TRUE)
-score <- pca_res$x
-
-score = as.data.frame(score)
-score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
-
-
-ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
-  geom_point(size = 4)
+# pca_res <- prcomp(t(assay(vsd)), scale. = TRUE)
+# score <- pca_res$x
+# 
+# score = as.data.frame(score)
+# score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
+# 
+# 
+# ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
+#   geom_point(size = 4)
 ```
 
 
