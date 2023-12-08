@@ -128,25 +128,12 @@ oncomat = reshape2::dcast(
   fill = '',
   drop = FALSE
 )
-```
-
-
-
-### Modify the row label to reflect the gene name
-```{r}
 
 rownames(oncomat) = oncomat$Hugo_Symbol
 oncomat <- oncomat[,-1]
-```
 
-
-
-### Reorder the rows according to the occurrence of heavily mutated genes
-
-```{r}
 oncomat.ordered <- oncomat[order(-hugo$Freq),]
 ```
-
 
 ### Transform the matrix into a binary matrix
 ```{r}
@@ -156,31 +143,27 @@ mat[mat == "Intron"] = 0
 mat[mat == "Missense_Mutation"] = 0
 mat[mat == ""] = 0
 
-
-
 mat <- apply(mat, 2 ,as.numeric)
 mat <- as.matrix(mat)
 mat[is.na(mat)]=1
 
 rownames(mat)  <-  row.names(oncomat.ordered)
 ```
-### Finding the top 20 mutated genes
+### Finding the top 20 most mutated genes
 ```{r}
 genes = rowSums(mat)
 oncomat.ordered <- oncomat[order(-hugo$Freq),]
 genes.ordered = sort(genes, decreasing = TRUE)
 
 
-genes.ordered.top = genes.ordered
+genes.ordered.top = genes.ordered[1:20]
 genes.ordered.top.names = names(genes.ordered.top)
 
 data_oncoplot.top = subset(data_oncoplot, Hugo_Symbol %in% genes.ordered.top.names)
 
-
-
 ```
 
-### Making a matrix of the top 20 occuring genes
+### Making a matrix of the top 20 genes
 
 ```{r}
 cnv_events = unique(data_oncoplot.top$Variant_Classification)
@@ -220,9 +203,14 @@ hugo <- as.data.frame(table(data_oncoplot.top$Hugo_Symbol))
 rownames(oncomat.top) = oncomat.top$Hugo_Symbol
 oncomat.top <- oncomat.top[,-1]
 oncomat.top.ordered <- oncomat.top[order(-hugo$Freq),]
+```
 
-
-
+```{r}
+hugo.ordered <- hugo[order(-hugo$Freq),]
+ggplot(hugo.ordered, aes(x=Var1, y=Freq))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 45,hjust=1))+
+  scale_x_discrete(limits = hugo.ordered$Var1)
 ```
 
 ### Transforming the top matrix into binary
@@ -292,6 +280,7 @@ fit = survfit(Surv(overall_survival, deceased) ~ SEX, data = data_clinical_commo
 
 pval = surv_pvalue(fit, data=data_clinical_common)$pval
 print(pval)
+
 ```
 ```{r}
 ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
@@ -303,6 +292,8 @@ ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col=
 # of the name, eg "stage iiia" would become simply "stage iii"
 data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
+	
+data_clinical_common[which(data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE == ""), "AJCC_PATHOLOGIC_TUMOR_STAGE"] = NA
 
 table(data_clinical_common$AJCC_PATHOLOGIC_TUMOR_STAGE)
 ```
@@ -313,9 +304,6 @@ fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, da
 # we can extract the survival p-value and print it
 pval = surv_pvalue(fit, data=data_clinical_common)$pval
 print(pval)
-```
-
-```{r}
 ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.height=0.45)
 ```
 expression frame done
