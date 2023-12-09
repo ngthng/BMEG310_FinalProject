@@ -143,7 +143,6 @@ rownames(mat)  <-  row.names(oncomat.ordered)
 ### Finding the top 20 most mutated genes
 ```{r}
 genes = rowSums(mat)
-oncomat.ordered <- oncomat[order(-hugo$Freq),]
 genes.ordered = sort(genes, decreasing = TRUE)
 
 
@@ -224,7 +223,7 @@ rownames(mat.top)  <-  row.names(oncomat.top.ordered)
 ```{r}
 reduce.mat <- mat.top[1:3,]
 res <- pheatmap(reduce.mat,
-         cluster_rows = F,
+         cluster_rows = FALSE,
          show_colnames = FALSE)
 ```
 ### clustering
@@ -275,7 +274,7 @@ fit = survfit(Surv(overall_survival, deceased) ~ cluster, data = data_clinical_c
 pval = surv_pvalue(fit, data=data_clinical_common)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35, title="Survival analysis of patients by cluster with mutation data")
 ```
 
 
@@ -289,7 +288,7 @@ fit = survfit(Surv(overall_survival, deceased) ~ SEX, data = data_clinical_commo
 pval = surv_pvalue(fit, data=data_clinical_common)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35, title = "Survival analysis of patients by sex")
 
 ```
 ### SA by Tumor Stage
@@ -308,7 +307,7 @@ fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, da
 # we can extract the survival p-value and print it
 pval = surv_pvalue(fit, data=data_clinical_common)$pval
 print(pval)
-ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.height=0.45)
+ggsurvplot(fit, data=data_clinical_common, pval=T,pval.size = 3 ,risk.table=T, risk.table.height=0.39,legend.lab = c("STAGE I", "STAGE II", "STAGE III", "STAGE IV"), title = "Survival analysis of patients by tumor stage", title.fontsize = 2)
 ```
 ### Survival analysis on the clustered patients
 
@@ -337,7 +336,7 @@ fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE , d
 pval = surv_pvalue(fit, data=data_clinical_common_group1)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_group1, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.45)
+ggsurvplot(fit, data=data_clinical_common_group1, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.45,legend.lab = c("STAGE I", "STAGE II", "STAGE III", "STAGE IV"), title = "Survivability of cluster 1 patients by tumor stage")
 ```
 
 ### SA on cluster 1 Sex
@@ -350,7 +349,7 @@ table(data_clinical_common_group1$SEX)
 
 pval = surv_pvalue(fit, data=data_clinical_common_group1)$pval
 print(pval)
-ggsurvplot(fit, data=data_clinical_common_group1, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common_group1, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35, legend.lab = c("Female", "Male"), title = "Survivability of cluster 1 patients by sex")
 ```
 
 ### SA on cluster 2 Tumor stage 
@@ -378,7 +377,7 @@ fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, da
 pval = surv_pvalue(fit, data=data_clinical_common_group2)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_group2, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common_group2, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35,legend.lab = c("STAGE I", "STAGE II", "STAGE III"), title = "Survivability of cluster 2 patients by tumor stage")
 ```
 ### SA on cluster 2 Sex
 ```{r}
@@ -390,7 +389,7 @@ table(data_clinical_common_group2$SEX)
 pval = surv_pvalue(fit, data=data_clinical_common_group2)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_group2, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common_group2, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35, legend.lab = c("Female", "Male"), title = "Survivability of cluster 2 patients by sex")
 ```
 
 ### SA on the most mutated gene Sex (TP53)
@@ -413,7 +412,7 @@ table(data_clinical_common_TP53$SEX)
 pval = surv_pvalue(fit, data=data_clinical_common_TP53)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35,legend.lab = c("Female", "Male"), title = "Survivability of TP53 patients by sex" )
 ```
 ### SA on the most mutated gene Tumor Stage
 ```{r}
@@ -432,7 +431,18 @@ fit = survfit(Surv(overall_survival, deceased) ~ AJCC_PATHOLOGIC_TUMOR_STAGE, da
 pval = surv_pvalue(fit, data=data_clinical_common_TP53)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.50)
+ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.50, legend.labs = c("STAGE I", "STAGE II", "STAGE III", "STAGE IV"), title = "Survivability of TP53 patients by tumor stage")
+```
+```{r}
+Surv(data_clinical_common_TP53$overall_survival, data_clinical_common_TP53$deceased) ~ data_clinical_common_TP53$cluster
+
+fit = survfit(Surv(overall_survival, deceased) ~ cluster, data = data_clinical_common_TP53)
+
+table(data_clinical_common_TP53$cluster)
+pval = surv_pvalue(fit, data=data_clinical_common_TP53)$pval
+print(pval)
+
+ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
 ```
 
 
@@ -461,20 +471,20 @@ pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          cluster_rows=FALSE, show_rownames=TRUE,
-         cluster_cols=TRUE,
+         cluster_cols=TRUE, shor_colnames =  FALSE, show_colnames = FALSE,
          annotation_col=cluster)
 ```
 PCA plot
 
 ```{r}
-# pca_res <- prcomp(t(data_rna_common), scale. = TRUE)
-# score <- pca_res$x
-# 
-# score = as.data.frame(score)
-# score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
-# 
-# ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
-#   geom_point(size = 4)
+pca_res <- prcomp(t(data_rna_common_cluster), scale. = FALSE)
+score <- pca_res$x
+
+score = as.data.frame(score)
+score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
+
+ggplot(score, aes(x=PC1, y=PC2,  color=color)) +
+  geom_point(size = 4)
 ```
 
 For visualization purposes
@@ -499,6 +509,8 @@ rownames(cluster) = substr(rownames(cluster), start = 1, stop = 12)
 common_cluster <- row.names(cluster)
 
 data_rna_common_cluster <- data_rna_common[,common_cluster]
+
+colnames(data_rna_common_cluster) = rownames(cluster)
 
 metadata <- data.frame(
   patientID = row.names(cluster),
@@ -643,7 +655,7 @@ sampleMatrix <- assay(vsd)[genes,]
 rownames(sampleMatrix) = rownames(data_rna_common_cluster[genes,])
 colnames(sampleMatrix) = colnames(data_rna_common_cluster)
 
-pheatmap(sampleMatrix , cluster_rows=FALSE, show_rownames=TRUE,
+pheatmap(sampleMatrix , cluster_rows=FALSE, show_rownames=TRUE, show_colnames = FALSE,
          cluster_cols=TRUE, annotation_col=annot_col)
 ```
 
