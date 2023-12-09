@@ -1,6 +1,6 @@
 ---
 title: "organized"
-author: "Theo-60985751"
+author: "Theo-60985751, Jingxuan-85741635"
 date: "2023-12-09"
 output: html_document
 ---
@@ -22,6 +22,7 @@ library("AnnotationDbi")
 library("org.Hs.eg.db")
 library(pathview)
 library(gage)
+library(gageData)
 ```
 
 # Opening the datafiles
@@ -323,12 +324,12 @@ metadata_rna <- data.frame(
 
 ### making metadata a factor so DESeq2 runs faster
 row.names(metadata_rna) = metadata_rna$patientID
-metadata$patientID = NULL
-metadata$condition = factor(metadata$condition)
+metadata_rna$patientID = NULL
+metadata$condition = factor(metadata_rna$condition)
 ```
 
 ```{r}
-dds_rna <- DESeqDataSetFromMatrix(countData = data_rna_common_cluster, colData = metadata, design = ~condition)
+dds_rna <- DESeqDataSetFromMatrix(countData = data_rna_common_cluster, colData = metadata_rna, design = ~condition)
 ```
 
 
@@ -375,6 +376,132 @@ genes <- order(res_de_rna$log2FoldChange,decreasing = TRUE)[1:20]
 
 # or we can select the top 20 significant genes
 ```
+P-values
+```{r}
+res_de <- res_de[order(res_de$pvalue),]
+summary(res_de)
+
+## number of adjusted p-values less than 0.1
+sum(res_de$padj < 0.1, na.rm=TRUE)
+```
+
+multiple testing
+
+```{r}
+sum(res_de$pvalue < 0.05, na.rm=TRUE)
+sum(!is.na(res_de$pvalue))
+sum(res_de$padj < 0.05, na.rm=TRUE)
+
+resSig <- subset(res_de, padj < 0.06)
+resSig <- subset(res_de, padj < 0.05)
+head(resSig[order( resSig$log2FoldChange ), ])
+
+head(resSig[order(resSig$log2FoldChange, decreasing=TRUE),], n= 20)
+
+
+```
+
+MA-plot
+```{r}
+# plotMA(res_de, ylim=c(-2,2))
+```
 
 
 
+
+
+Selecting the top 20 upregulated (or top 20 downregulated)
+```{r}
+genes <- order(res_de$log2FoldChange,decreasing = TRUE)[1:20]
+
+```
+
+```{r}
+annot_col = data.frame(metadata_rna$condition)
+row.names(annot_col) <- rownames(metadata_rna)
+
+sampleMatrix <- assay(vsd)[genes,]
+
+rownames(sampleMatrix) = rownames(data_rna_common_cluster[genes,])
+colnames(sampleMatrix) = colnames(data_rna_common_cluster)
+
+pheatmap(sampleMatrix , cluster_rows=FALSE, show_rownames=TRUE,
+         cluster_cols=TRUE, annotation_col=annot_col)
+```
+
+
+Adding gene notation
+```{r}
+columns(org.Hs.eg.db)
+```
+
+```{r}
+row.names(res_de)= substr(row.names(res_de), start = 1, stop = 15)
+res_de$symbol = mapIds(org.Hs.eg.db,
+                    keys=row.names(res_de), 
+                    column="SYMBOL",
+                    keytype="ENSEMBL",
+                    multiVals="first")
+res_de$entrez = mapIds(org.Hs.eg.db,
+                    keys=row.names(res_de), 
+                    column="ENTREZID",
+                    keytype="ENSEMBL",
+                    multiVals="first")
+res_de$name =   mapIds(org.Hs.eg.db,
+                    keys=row.names(res_de), 
+                    column="GENENAME",
+                    keytype="ENSEMBL",
+                    multiVals="first")
+
+head(res_de, 10)
+```
+
+```{r}
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+# Examine the first 3 pathways
+head(kegg.sets.hs, 3)
+```
+
+```{r}
+foldchanges = res_de$log2FoldChange
+names(foldchanges) = res_de$entrez
+head(foldchanges)
+```
+
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+```{r}
+attributes(keggres)
+```
+
+```{r}
+# Look at the first few down (less) pathways
+head(keggres$less)
+```
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04740")
+```
+
+```{r}
+## Focus on top 5 upregulated pathways here for demo purposes only
+keggrespathways <- rownames(keggres$greater)[1:5]
+
+# Extract the 8 character long IDs part of each string
+keggresids = substr(keggrespathways, start=1, stop=8)
+keggresids
+
+pathview(gene.data=foldchanges, pathway.id=keggresids, species="hsa")
+
+```
+
+```{r}
+knitr::include_graphics("hsa04740.pathview.png")
+```
