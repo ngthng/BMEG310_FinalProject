@@ -22,7 +22,7 @@ library(DESeq2)
 library("gridExtra")
 library("AnnotationDbi")
 library("org.Hs.eg.db")
-library("pathview")
+library(pathview)
 library(gage)
 ```
 # Opening the datafiles
@@ -619,7 +619,7 @@ vsd <- vst(dds)
 #   geom_point(size = 4)
 ```
 
-Selecting the top 20 upregulated and top 20 downregulated
+Selecting the top 20 upregulated (or top 20 downregulated)
 ```{r}
 # Top20genes = head(resSig[order(resSig$log2FoldChange, decreasing=TRUE),], n= 20)
 
@@ -654,7 +654,7 @@ columns(org.Hs.eg.db)
 
 
 ```{r}
-
+row.names(res_de)= substr(row.names(res_de), start = 1, stop = 15)
 res_de$symbol = mapIds(org.Hs.eg.db,
                     keys=row.names(res_de), 
                     column="SYMBOL",
@@ -670,10 +670,55 @@ res_de$name =   mapIds(org.Hs.eg.db,
                     column="GENENAME",
                     keytype="ENSEMBL",
                     multiVals="first")
-head(res, 10)
+
+head(res_de, 10)
+```
+```{r}
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+# Examine the first 3 pathways
+head(kegg.sets.hs, 3)
+```
+```{r}
+foldchanges = res_de$log2FoldChange
+names(foldchanges) = res_de$entrez
+head(foldchanges)
 ```
 
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
 
+```{r}
+attributes(keggres)
+```
+
+```{r}
+# Look at the first few down (less) pathways
+head(keggres$less)
+```
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+```
+```{r}
+## Focus on top 5 upregulated pathways here for demo purposes only
+keggrespathways <- rownames(keggres$greater)[1:5]
+
+# Extract the 8 character long IDs part of each string
+keggresids = substr(keggrespathways, start=1, stop=8)
+keggresids
+
+pathview(gene.data=foldchanges, pathway.id=keggresids, species="hsa")
+
+```
+```{r}
+knitr::include_graphics("hsa04141.pathview.png")
+```
 
 H0: There's no significance between cluster 1 and 2
 H1: There's a difference between cluster 1 and 2
