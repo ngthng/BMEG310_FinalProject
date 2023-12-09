@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Including the libraries
+# Data processing
+### Including the libraries
 
 ```{r}
 library(ggplot2)
@@ -25,14 +26,15 @@ library("org.Hs.eg.db")
 library(pathview)
 library(gage)
 ```
-# Opening the datafiles
+
+### Opening the datafiles
 ```{r}
 data_mutation = read.delim("data_mutations.txt", header = TRUE, sep = '\t')
 data_clinical = read.table("data_clinical_patient.txt",header = TRUE, sep = '\t')
 data_rna = read.csv("RNAseq_LIHC.csv", header = TRUE, row.names = "X")
 ```
 
-# Finding the patients that we have data for clinical, genome, and RNAseq data
+### Finding the patients that we have data for clinical, genome, and RNAseq data
 ```{r}
 unique_patient_clinical = unique(data_clinical$PATIENT_ID)
 unique_patient_rna = unique(colnames(data_rna))
@@ -64,7 +66,9 @@ data_rna_common = data_rna_shortened[,common_names2]
 
 ```
 
-### Generate a plot for distribution of variant classifications
+# Analysis of mutation data
+
+Generate a plot for distribution of variant classifications
 ```{r}
 data_oncoplot = data_mutation_common
 
@@ -74,7 +78,7 @@ ggplot(data=var.class, aes(x=Var1, y=Freq))+
   geom_col()+
   theme(axis.text.x = element_text(angle = 45,hjust=1))
 ```
-### Generate a plot for distribution of mutation events
+Generate a plot for distribution of mutation events
 ```{r}
 hugo <- as.data.frame(table(data_mutation_common$Hugo_Symbol))
 
@@ -85,7 +89,7 @@ ggplot(data=hugo.ordered[1:20,], aes(x=Var1, y=Freq))+
   theme(axis.text.x = element_text(angle = 45,hjust=1))+
   scale_x_discrete(limits = hugo.ordered[1:20,]$Var1)
 ```
-### Generate an oncoplot matrix of all genes
+Generate an oncoplot matrix of all genes
 ```{r}
 cnv_events = unique(data_oncoplot$Variant_Classification)
 oncomat = reshape2::dcast(
@@ -126,7 +130,7 @@ oncomat <- oncomat[,-1]
 oncomat.ordered <- oncomat[order(-hugo$Freq),]
 ```
 
-### Transform the matrix into a binary matrix
+Transform the matrix into a binary matrix
 ```{r}
 mat <- oncomat.ordered
 mat[mat== "Silent"] = 0
@@ -140,7 +144,7 @@ mat[is.na(mat)]=1
 
 rownames(mat)  <-  row.names(oncomat.ordered)
 ```
-### Finding the top 20 most mutated genes
+Finding the top 20 most mutated genes
 ```{r}
 genes = rowSums(mat)
 genes.ordered = sort(genes, decreasing = TRUE)
@@ -153,7 +157,7 @@ data_oncoplot.top = subset(data_oncoplot, Hugo_Symbol %in% genes.ordered.top.nam
 
 ```
 
-### Making a matrix of the top 20 mutated genes
+Making a matrix of the top 20 mutated genes
 ```{r}
 cnv_events = unique(data_oncoplot.top$Variant_Classification)
 oncomat.top = reshape2::dcast(
@@ -194,7 +198,7 @@ oncomat.top <- oncomat.top[,-1]
 oncomat.top.ordered <- oncomat.top[order(-hugo$Freq),]
 ```
 
-### Generate a plot for distribution of the top 20 most mutated genes
+Generate a plot for distribution of the top 20 most mutated genes
 ```{r}
 hugo.ordered <- hugo[order(-hugo$Freq),]
 ggplot(hugo.ordered, aes(x=Var1, y=Freq))+
@@ -203,12 +207,12 @@ ggplot(hugo.ordered, aes(x=Var1, y=Freq))+
   scale_x_discrete(limits = hugo.ordered$Var1)
 ```
 
-### Transforming the top matrix into binary
+Transforming the top 20 gene matrix into binary
 ```{r, echo = FALSE}
 mat.top <- oncomat.top.ordered
 mat.top[mat.top== "Silent"] = 0
 mat.top[mat.top == "Intron"] = 0
-# mat.top[mat.top == "Missense_Mutation"] = 0
+mat.top[mat.top == "Missense_Mutation"] = 0
 
 mat.top[mat.top == ""] = 0
 
@@ -219,19 +223,21 @@ mat.top[is.na(mat.top)]=1
 
 rownames(mat.top)  <-  row.names(oncomat.top.ordered)
 ```
-### Generate a pheatmap
+
+Generate a pheatmap for top 3 mutated genes
 ```{r}
 reduce.mat <- mat.top[1:3,]
 res <- pheatmap(reduce.mat,
          cluster_rows = FALSE,
          show_colnames = FALSE, main = "Top 3 gene mutation vs patient")
 ```
-### clustering
+Performing k-mean clustering
 ```{r}
 cluster = as.data.frame(cutree(res$tree_col, k = 2))
 cluster
 ```
-### Finding the patientID in each group
+
+Finding the patientID in each group
 ```{r}
 mutation_group1_patientID = subset(cluster,`cutree(res$tree_col, k = 2)` == 1)
 mutation_group2_patientID = subset(cluster,`cutree(res$tree_col, k = 2)` == 2)
@@ -246,8 +252,9 @@ data_clinical_common_TP53 = subset(data_clinical_common, PATIENT_ID %in% mutatio
 
 ```
 
+# Survival analysis
 
-### survival analysis on clinical data 
+## survival analysis (SA) on clinical data 
 ```{r}
 data_clinical_common$deceased = data_clinical_common$PFS_STATUS == "1:PROGRESSION"
 
@@ -309,9 +316,8 @@ pval = surv_pvalue(fit, data=data_clinical_common)$pval
 print(pval)
 ggsurvplot(fit, data=data_clinical_common, pval=T,pval.size = 3 ,risk.table=T, risk.table.height=0.39,legend.lab = c("STAGE I", "STAGE II", "STAGE III", "STAGE IV"), title = "Survival analysis of patients by tumor stage", title.fontsize = 2)
 ```
-### Survival analysis on the clustered patients
-
-### SA on cluster 1 Tumor Stage 
+## Survival analysis on patients in each cluster (produced by mutation data)
+### SA on cluster 1 by Tumor Stage 
 ```{r}
 data_clinical_common_group1$deceased = data_clinical_common_group1$PFS_STATUS == "1:PROGRESSION"
 
@@ -339,7 +345,7 @@ print(pval)
 ggsurvplot(fit, data=data_clinical_common_group1, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.45,legend.lab = c("STAGE I", "STAGE II", "STAGE III", "STAGE IV"), title = "Survivability of cluster 1 patients by tumor stage")
 ```
 
-### SA on cluster 1 Sex
+### SA on cluster 1 by Sex
 ```{r}
 Surv(data_clinical_common_group1$overall_survival, data_clinical_common_group1$deceased) ~ data_clinical_common_group1$SEX
 
@@ -391,8 +397,8 @@ print(pval)
 
 ggsurvplot(fit, data=data_clinical_common_group2, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35, legend.lab = c("Female", "Male"), title = "Survivability of cluster 2 patients by sex")
 ```
-
-### SA on the most mutated gene Sex (TP53)
+## SA on the most mutated gene (TP53)
+### SA by sex
 ```{r}
 data_clinical_common_TP53$deceased = data_clinical_common_TP53$PFS_STATUS == "1:PROGRESSION"
 
@@ -414,7 +420,7 @@ print(pval)
 
 ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35,legend.lab = c("Female", "Male"), title = "Survivability of TP53 patients by sex" )
 ```
-### SA on the most mutated gene Tumor Stage
+### SA by tumor stage
 ```{r}
 # remove any of the letters "a", "b" or "c", but only if they are at the end
 # of the name, eg "stage iiia" would become simply "stage iii"
@@ -433,6 +439,7 @@ print(pval)
 
 ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.50, legend.labs = c("STAGE I", "STAGE II", "STAGE III", "STAGE IV"), title = "Survivability of TP53 patients by tumor stage")
 ```
+### SA by cluster with mutation data
 ```{r}
 data_clinical_common_TP53$cluster = cluster[data_clinical_common_TP53$PATIENT_ID,]
 
@@ -446,9 +453,8 @@ print(pval)
 
 ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35, title = "Survivability of TP53 patients by cluster with mutation data")
 ```
+# Differential Expression analysis
 
-
-### DE analysis
 ```{r}
 data_rna_common <- data_rna_common[rowSums(data_rna_common)>1,]
 # head(data_rna_common)
@@ -474,7 +480,7 @@ pheatmap(sampleDistMatrix,
          clustering_distance_cols = sampleDists,
          cluster_rows=FALSE, show_rownames=TRUE,
          cluster_cols=TRUE, shor_colnames =  FALSE, show_colnames = FALSE,
-         annotation_col=cluster)
+         annotation_col=cluster, main = "Distance of expressed genes \n with annotation from mutation clustering",)
 ```
 
 PCA plot
@@ -488,21 +494,6 @@ score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
 
 ggplot(score, aes(x=PC1, y=PC2,  color=color)) +
   geom_point(size = 4)
-```
-
-For visualization purposes
-
-```{r}
-p1 <- ggplot(as.data.frame(data_rna_common),aes(x="TCGA-2V-A95S"))+
-  geom_histogram(bins=50)+
-  labs(title="No transformation")
-
-log2 <- log(data_rna_common+1, base = 2)
-p2 <- ggplot(as.data.frame(log2),aes(x="TCGA-2V-A95S"))+
-  geom_histogram(bins=50)+
-  labs(title="Log(x+1)")
-
-# grid.arrange(p1, p2, ncol = 2)
 ```
 
 Actually running the DESeq pipeline
@@ -528,8 +519,6 @@ metadata$condition = factor(metadata$condition)
 
 
 ```{r}
-# data_rna_common_cluster = as.factor(data_rna_common_cluster)
-
 dds <- DESeqDataSetFromMatrix(countData = data_rna_common_cluster, colData = metadata, design = ~condition)
 ```
 
@@ -537,20 +526,18 @@ dds <- DESeqDataSetFromMatrix(countData = data_rna_common_cluster, colData = met
 ```{r}
 dds = DESeq(dds)
 dds
-
-# res_de <- results(dds)
-# res_de
-# summary(res_de)
-# res_de.05 <- results(dds, alpha = 0.05)
-# table(res_de.05$padj < 0.05)
 ```
 ```{r}
+print("Result table of DESeq")
 res_de = results(dds, contrast=c(1, 2))
 mcols(res_de, use.names = TRUE)
 summary(res_de)
+
+print("\n Number of genes with adjusted p-value that is less than 0.05")
 res_de.05 <- results(dds, alpha = 0.05)
 table(res_de.05$padj < 0.05)
 
+print("\n number of genes with log2 fold more than doubling (p-value < 0.1)")
 resLFC1 <- results(dds, lfcThreshold=1)
 table(resLFC1$padj < 0.1)
 ```
@@ -568,29 +555,27 @@ sum(res_de$padj < 0.1, na.rm=TRUE)
 multiple testing
 
 ```{r}
-sum(res_de$pvalue < 0.05, na.rm=TRUE)
-sum(!is.na(res_de$pvalue))
-sum(res_de$padj < 0.05, na.rm=TRUE)
+# sum(res_de$pvalue < 0.05, na.rm=TRUE)
+# sum(!is.na(res_de$pvalue))
+# sum(res_de$padj < 0.05, na.rm=TRUE)
 
 resSig <- subset(res_de, padj < 0.06)
-resSig <- subset(res_de, padj < 0.05)
+resSig <- subset(res_de, padj < 0.06)
 head(resSig[order( resSig$log2FoldChange ), ])
 
 head(resSig[order(resSig$log2FoldChange, decreasing=TRUE),], n= 20)
-
-
 ```
 
 MA-plot
 ```{r}
-# plotMA(res_de, ylim=c(-2,2))
+plotMA(res_de, ylim=c(-2,2))
 ```
 
 Plot counts
 ```{r}
 plotCounts(dds, gene=which.min(res_de$padj), intgroup="condition")
 ```
-Effect of transformations on the variance (CANT RUN THE CHUNK BELOW)
+Effect of transformations on the variance
 
 ```{r}
 # this gives log2(n + 1)
@@ -623,15 +608,15 @@ vsd <- vst(dds)
 ```
 
 ```{r}
-# pca_res <- prcomp(t(assay(vsd)), scale. = TRUE)
-# score <- pca_res$x
-# 
-# score = as.data.frame(score)
-# score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
-# 
-# 
-# ggplot(score, aes(x=PC1, y=PC2,  color=color)) + 
-#   geom_point(size = 4)
+pca_res <- prcomp(t(assay(vsd)), scale. = FALSE)
+score <- pca_res$x
+
+score = as.data.frame(score)
+score$color <- as.factor(cluster$`cutree(res$tree_col, k = 2)`)
+
+
+ggplot(score, aes(x=PC1, y=PC2,  color=color)) +
+  geom_point(size = 4)
 ```
 
 Selecting the top 20 upregulated (or top 20 downregulated)
@@ -661,8 +646,9 @@ colnames(sampleMatrix) = colnames(data_rna_common_cluster)
 pheatmap(sampleMatrix , cluster_rows=FALSE, show_rownames=TRUE, show_colnames = FALSE,
          cluster_cols=TRUE, annotation_col=annot_col, main = "Heatmap of Gene expression vs patient from mutation clusters 1 and 2")
 ```
+# Pathway analysis
 
-Adding gene notation
+Adding gene notation 
 ```{r}
 columns(org.Hs.eg.db)
 ```
@@ -714,14 +700,14 @@ attributes(keggres)
 ```
 
 ```{r}
-# Look at the first few down (less) pathways
-head(keggres$less)
+# Look at the first few up (greater) pathways
+head(keggres$greater)
 ```
 ```{r}
 pathview(gene.data=foldchanges, pathway.id="hsa04110")
 ```
 ```{r}
-
+knitr::include_graphics("hsa04110.pathview.png")
 ```
 
 ```{r}
