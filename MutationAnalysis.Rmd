@@ -418,7 +418,7 @@ ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table
 ```{r}
 # remove any of the letters "a", "b" or "c", but only if they are at the end
 # of the name, eg "stage iiia" would become simply "stage iii"
-data_clinical_common_TP53JCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE)
+data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE = gsub("[ABC]$", "", data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE)
 
 data_clinical_common_TP53[which(data_clinical_common_TP53$AJCC_PATHOLOGIC_TUMOR_STAGE == ""), "AJCC_PATHOLOGIC_TUMOR_STAGE"] = NA
 
