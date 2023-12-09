@@ -434,6 +434,8 @@ print(pval)
 ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.50, legend.labs = c("STAGE I", "STAGE II", "STAGE III", "STAGE IV"), title = "Survivability of TP53 patients by tumor stage")
 ```
 ```{r}
+data_clinical_common_TP53$cluster = cluster[data_clinical_common_TP53$PATIENT_ID,]
+
 Surv(data_clinical_common_TP53$overall_survival, data_clinical_common_TP53$deceased) ~ data_clinical_common_TP53$cluster
 
 fit = survfit(Surv(overall_survival, deceased) ~ cluster, data = data_clinical_common_TP53)
@@ -442,7 +444,7 @@ table(data_clinical_common_TP53$cluster)
 pval = surv_pvalue(fit, data=data_clinical_common_TP53)$pval
 print(pval)
 
-ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35)
+ggsurvplot(fit, data=data_clinical_common_TP53, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35, title = "Survivability of TP53 patients by cluster with mutation data")
 ```
 
 
