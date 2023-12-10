@@ -2,7 +2,9 @@
 title: "MutationAnalysis"
 author: "Theo-60985751, Hannah- , Jingxuan-"
 date: "2023-11-23"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -131,7 +133,7 @@ oncomat.ordered <- oncomat[order(-hugo$Freq),]
 ```
 
 Transform the matrix into a binary matrix
-```{r}
+```{r, message=FALSE, warning=FALSE}
 mat <- oncomat.ordered
 mat[mat== "Silent"] = 0
 mat[mat == "Intron"] = 0
@@ -208,7 +210,7 @@ ggplot(hugo.ordered, aes(x=Var1, y=Freq))+
 ```
 
 Transforming the top 20 gene matrix into binary
-```{r, echo = FALSE}
+```{r, message=FALSE, warning=FALSE}
 mat.top <- oncomat.top.ordered
 mat.top[mat.top== "Silent"] = 0
 mat.top[mat.top == "Intron"] = 0
@@ -234,7 +236,7 @@ res <- pheatmap(reduce.mat,
 Performing k-mean clustering
 ```{r}
 cluster = as.data.frame(cutree(res$tree_col, k = 2))
-cluster
+# cluster
 ```
 
 Finding the patientID in each group
@@ -475,7 +477,7 @@ sampleDistMatrix = as.matrix( sampleDists )
 rownames(sampleDistMatrix) = colnames(data_rna_common)
 colnames(sampleDistMatrix) = colnames(data_rna_common)
 
-pheatmap(sampleDistMatrix,
+res_rna = pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          cluster_rows=FALSE, show_rownames=TRUE,
@@ -483,9 +485,47 @@ pheatmap(sampleDistMatrix,
          annotation_col=cluster, main = "Distance of expressed genes \n with annotation from mutation clustering",)
 ```
 
+```{r}
+cluster_rna = as.data.frame(cutree(res_rna$tree_col, k = 2))
+# cluster_rna
+```
+
+Adding cluster_rna cluster and survival analysis
+```{r}
+
+data_clinical_common$deceased = data_clinical_common$PFS_STATUS == "1:PROGRESSION"
+
+# create an "overall survival" variable that is equal to days_to_death
+# for dead patients, and to days_to_last_follow_up for patients who
+# are still alive
+data_clinical_common$overall_survival = ifelse(data_clinical_common$deceased,
+                                   data_clinical_common$OS_MONTHS,
+                                   data_clinical_common$DAYS_LAST_FOLLOWUP)
+
+data_clinical_common$cluster_rna = cluster_rna[data_clinical_common$PATIENT_ID,]
+
+Surv(data_clinical_common$overall_survival, data_clinical_common$deceased) ~ data_clinical_common$cluster_rna
+
+table(data_clinical_common$cluster_rna)
+fit = survfit(Surv(overall_survival, deceased) ~ cluster_rna, data = data_clinical_common)
+
+pval = surv_pvalue(fit, data=data_clinical_common)$pval
+print(pval)
+
+ggsurvplot(fit, data=data_clinical_common, pval=T, risk.table=T, risk.table.col="strata", risk.table.height=0.35, title = "Survivability of patients clustered by expression data")
+```
+ 
 PCA plot
 
 ```{r}
+
+rownames(cluster) = substr(rownames(cluster), start = 1, stop = 12)
+common_cluster <- row.names(cluster)
+
+data_rna_common_cluster <- data_rna_common[,common_cluster]
+
+colnames(data_rna_common_cluster) = rownames(cluster)
+
 pca_res <- prcomp(t(data_rna_common_cluster), scale. = FALSE)
 score <- pca_res$x
 
@@ -646,6 +686,8 @@ colnames(sampleMatrix) = colnames(data_rna_common_cluster)
 pheatmap(sampleMatrix , cluster_rows=FALSE, show_rownames=TRUE, show_colnames = FALSE,
          cluster_cols=TRUE, annotation_col=annot_col, main = "Heatmap of Gene expression vs patient from mutation clusters 1 and 2")
 ```
+
+
 # Pathway analysis
 
 Adding gene notation 
@@ -675,14 +717,18 @@ res_de$name =   mapIds(org.Hs.eg.db,
 head(res_de, 10)
 ```
 ```{r}
-data(kegg.sets.hs)
-data(sigmet.idx.hs)
+library("org.Hs.eg.db")
+library(pathview)
+library(gage)
+library(gageData)
+kegg.sets.hs = data(kegg.sets.hs)
+sigmet.idx.hs = data(sigmet.idx.hs)
 
 # Focus on signaling and metabolic pathways only
 kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
-
+kegg.sets.hs = list(kegg.sets.hs)
 # Examine the first 3 pathways
-head(kegg.sets.hs, 3)
+# head(kegg.sets.hs, 3)
 ```
 ```{r}
 foldchanges = res_de$log2FoldChange
